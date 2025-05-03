@@ -5,16 +5,22 @@ parameters:
     type: enum
     default: linux
     enum:
-      - linux
+      - ubuntu
+      - fedora
       - macos
 
 executors:
-  linux-executor:
+  ubuntu-executor:
     docker:
       - image: cimg/python:3.10
     working_directory: ~/ollama-tests
 
-  mac-executor:
+  fedora-executor:
+    docker:
+      - image: fedora:latest
+    working_directory: ~/ollama-tests
+
+  macos-executor:
     macos:
       xcode: "14.2.0"
     working_directory: ~/ollama-tests
@@ -36,12 +42,22 @@ jobs:
 
       - when:
           condition:
-            equal: [<< parameters.os >>, "linux"]
+            or:
+              - equal: [<< parameters.os >>, "ubuntu"]
+              - equal: [<< parameters.os >>, "fedora"]
           steps:
             - run:
-                name: Install system deps + Ollama (Linux)
+                name: Install Python & deps (Linux)
                 command: |
-                  sudo apt-get update && sudo apt-get install -y curl jq
+                  if command -v apt-get &> /dev/null; then
+                    apt-get update && apt-get install -y python3-pip curl jq
+                  elif command -v dnf &> /dev/null; then
+                    dnf install -y python3-pip curl jq
+                  fi
+            
+            - run:
+                name: Install Ollama (Linux)
+                command: |
                   curl -fsSL https://ollama.com/install.sh | sh
                   echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
@@ -64,6 +80,7 @@ jobs:
                   
                   # Install Ollama after Homebrew is installed
                   brew install ollama
+            
             - run:
                 name: Add Homebrew Ollama to PATH
                 command: |
@@ -71,12 +88,17 @@ jobs:
                   source $BASH_ENV
                   which ollama
                   ollama --version
+            
             - run:
                 name: Start Ollama
                 command: |
                   ollama serve &
                   sleep 5
-
+      
+      - run:
+          name: Install Python packages
+          command: pip3 install -r requirements.txt
+      
       - run:
           name: Run Pytest
           command: pytest ollama-test.py
@@ -91,4 +113,4 @@ workflows:
       - test:
           matrix:
             parameters:
-              os: ["linux", "macos"]
+              os: ["ubuntu", "fedora", "macos"]
