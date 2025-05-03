@@ -108,7 +108,7 @@ jobs:
 
       - run:
           name: Run Pytest
-          command: pytest test_ollama.py
+          command: pytest ollama-test.py
 
       - store_artifacts:
           path: test-results
