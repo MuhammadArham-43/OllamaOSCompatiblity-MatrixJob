@@ -64,7 +64,8 @@ jobs:
                 command: |
                   sudo apt-get update && sudo apt-get install -y curl jq
                   curl -fsSL https://ollama.com/install.sh | sh
-                  sudo mv ~/.ollama/bin/ollama /usr/local/bin/ollama
+                  echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
+                  source $BASH_ENV
                   ollama serve &
                   sleep 5
 
@@ -72,13 +73,23 @@ jobs:
           condition:
             equal: [<< parameters.os >>, "macos"]
           steps:
-            - run:
-                name: Install system deps + Ollama (macOS)
-                command: |
-                  brew install curl jq
-                  brew install ollama
-                  ollama serve &
-                  sleep 5
+          - run:
+              name: Install Homebrew
+              shell: /bin/bash
+              command: |
+                NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.bash_profile
+                eval "$(/opt/homebrew/bin/brew shellenv)"
+
+          - run:
+              name: Install system deps + Ollama (macOS)
+              shell: /bin/bash
+              command: |
+                eval "$(/opt/homebrew/bin/brew shellenv)"
+                brew install curl jq
+                brew install ollama
+                ollama serve &
+                sleep 5
 
       - when:
           condition:
@@ -86,6 +97,7 @@ jobs:
           steps:
             - run:
                 name: Start Ollama (Windows)
+                shell: powershell
                 command: |
                   Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
                   Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
