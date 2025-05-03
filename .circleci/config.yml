@@ -57,7 +57,7 @@ jobs:
                   echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
                   ollama serve &
-                  sleep 5
+                  sleep 10
 
       - when:
           condition:
@@ -76,10 +76,8 @@ jobs:
                 command: |
                   echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
-                  which ollama
-                  ollama --version
-                  ollama serve &
-                  sleep 5
+                  /opt/homebrew/opt/ollama/bin/ollama serve &
+                  sleep 10
       - run:
           name: Install Python dependencies
           command: pip3 install -r requirements.txt
