@@ -61,23 +61,23 @@ jobs:
                   source $BASH_ENV
                   ollama --version
 
-      # - run:
-      #     name: Test Ollama
-      #     command: |
-      #       # Check Ollama server is running
-      #       ollama serve &
-      #       sleep 10
-      #       ollama pull smollm2:135m
-      #       curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
+      - run:
+          name: Serve Ollama and Pull Model
+          command: |
+            # Check Ollama server is running
+            ollama serve &
+            sleep 10
+            ollama pull smollm2:135m
+            curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
 
-      #       # Simple test generation
-      #       curl -X POST http://localhost:11434/api/generate \
-      #         -H "Content-Type: application/json" \
-      #         -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
-      #         | tee ollama-test-output.json
+            # Simple test generation
+            curl -X POST http://localhost:11434/api/generate \
+              -H "Content-Type: application/json" \
+              -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
+              | tee ollama-test-output.json
 
-      #       echo "Ollama response:"
-      #       cat ollama-test-output.json
+            echo "Ollama response:"
+            cat ollama-test-output.json
 
       - run:
           name: Run Python test
