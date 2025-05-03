@@ -12,7 +12,7 @@ import requests
 import pytest
 
 BASE_URL = "http://localhost:11434/api"
-MODEL_NAME = "smollm2:135m"
+MODEL_NAME = "smollm:135m"
 AVG_LATENCY = None
 
 
