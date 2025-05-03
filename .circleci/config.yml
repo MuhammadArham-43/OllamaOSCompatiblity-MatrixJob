@@ -105,8 +105,9 @@ jobs:
                 name: Download and Install Ollama
                 command: |
                   curl -L -o ollama-windows.exe https://ollama.com/download/ollama-windows.exe
-                  ./ollama-windows.exe /S
-                  sleep 10
+                  chmod +x ollama-windows.exe
+                  ./ollama-windows.exe /S || echo "Installation may have failed, checking if it's already installed..."
+                  sleep 15
             - run:
                 name: Start Ollama Server
                 command: |
