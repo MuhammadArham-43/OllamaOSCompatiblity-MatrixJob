@@ -23,6 +23,7 @@ executors:
   windows-executor:
     machine:
       image: windows-server-2022-gui:current
+    shell: cmd.exe /c
     working_directory: ~/ollama-tests
 
 jobs:
@@ -102,32 +103,35 @@ jobs:
             equal: [<< parameters.os >>, "windows"]
           steps:
             - run:
-                name: Download and Install Ollama
+                  name: Debug Environment (Windows)
+                  command: |
+                    echo PATH=%PATH%
+                    echo LOCALAPPDATA=%LOCALAPPDATA%
+                    echo USERNAME=%USERNAME%
+                    echo USERPROFILE=%USERPROFILE%
+                    dir
+            - run:
+                name: Download Ollama Installer (Windows)
                 command: |
                   curl -L -o ollama-windows.exe https://ollama.com/download/ollama-windows.exe
-                  chmod +x ollama-windows.exe
-                  ./ollama-windows.exe /S || echo "Installation may have failed, checking if it's already installed..."
-                  sleep 15
             - run:
-                name: Start Ollama Server
+                name: Install Ollama (Windows)
                 command: |
-                  OLLAMA_PATH="$LOCALAPPDATA/Ollama/ollama.exe"
-                  if [ -f "$OLLAMA_PATH" ]; then
-                    echo "Ollama found at: $OLLAMA_PATH"
-                  else
-                    echo "Searching for ollama.exe..."
-                    OLLAMA_PATH=$(find "$LOCALAPPDATA" -name "ollama.exe" 2>/dev/null | head -1)
-                    if [ -n "$OLLAMA_PATH" ]; then
-                      echo "Ollama found at: $OLLAMA_PATH"
-                    else
-                      echo "ERROR: Ollama installation not found!"
-                      exit 1
-                    fi
-                  fi
-                  
-                  # Start Ollama server
-                  "$OLLAMA_PATH" serve &
-                  sleep 15
+                  start /wait ollama-windows.exe /S
+                  timeout /t 20
+            - run:
+                name: Find and Start Ollama Server (Windows)
+                command: |
+                  IF EXIST "%LOCALAPPDATA%\Ollama\ollama.exe" (
+                    echo Ollama found at: %LOCALAPPDATA%\Ollama\ollama.exe
+                    start "" "%LOCALAPPDATA%\Ollama\ollama.exe" serve
+                  ) ELSE (
+                    echo Ollama not found at expected location, searching...
+                    dir /s /b "%LOCALAPPDATA%\ollama.exe"
+                    echo If found above, please update the path
+                    exit 1
+                  )
+                  timeout /t 15
 
 
       - run:
