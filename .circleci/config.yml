@@ -55,17 +55,9 @@ jobs:
             equal: [<< parameters.os >>, "macos"]
           steps:
             - run:
-                name: Install Homebrew (macOS)
-                command: |
-                  if ! command -v brew &> /dev/null; then
-                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                  fi
-                  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-                  brew install ollama
-            
-            - run:
                 name: Add Homebrew Ollama to PATH
                 command: |
+                  brew install ollama
                   echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
                   which ollama
@@ -81,9 +73,9 @@ jobs:
           name: Install Python packages
           command: pip3 install -r requirements.txt
       
-      - run:
-          name: Pull Ollama Model
-          command: ollama pull smollm2:135m
+      # - run:
+      #     name: Pull Ollama Model
+      #     command: ollama pull smollm2:135m
       
       - run:
           name: Run Pytest

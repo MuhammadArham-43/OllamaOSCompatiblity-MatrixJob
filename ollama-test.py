@@ -45,6 +45,14 @@ def ensure_model_available():
         if MODEL_NAME not in model_names:
             print(f"Pulling model {MODEL_NAME}...")
             subprocess.run(["ollama", "pull", MODEL_NAME], check=True)
+        # Wait until model is fully loaded
+        for _ in range(10):
+            res = requests.get(f"{BASE_URL}/tags")
+            loaded_models = [m["name"] for m in res.json().get("models", [])]
+            if MODEL_NAME in loaded_models:
+                return
+            print("Waiting for model to load...")
+            time.sleep(10)
     except Exception as e:
         pytest.exit(f"Failed to ensure model availability: {e}")
 
