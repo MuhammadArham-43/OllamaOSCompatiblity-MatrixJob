@@ -23,6 +23,7 @@ executors:
   windows-executor:
     machine:
       image: windows-server-2022-gui:current
+    shell: powershell.exe -ExecutionPolicy Bypass
     working_directory: ~/ollama-tests
 
 jobs:
@@ -103,15 +104,38 @@ jobs:
           steps:
             - run:
                 name: Start Ollama (Windows)
-                shell: powershell
+                shell: powershell.exe
                 command: |
+                  Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
                   Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
+                  
+                  # Install Ollama silently
                   Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
-
+                  
+                  # Find Ollama executable
                   $ollamaPath = "$env:LOCALAPPDATA\Ollama\ollama.exe"
+                  if (Test-Path $ollamaPath) {
+                    Write-Host "Ollama found at: $ollamaPath"
+                  } else {
+                    Write-Host "Ollama not found at expected location. Searching..."
+                    $ollamaPath = Get-ChildItem -Path $env:LOCALAPPDATA -Filter "ollama.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+                    if ($ollamaPath) {
+                      Write-Host "Ollama found at: $ollamaPath"
+                    } else {
+                      Write-Error "Ollama installation not found!"
+                      exit 1
+                    }
+                  }
+                  
+                  # Verify Ollama version
                   & $ollamaPath --version
+                  
+                  # Start Ollama server
                   Start-Process -NoNewWindow -FilePath $ollamaPath -ArgumentList "serve"
-                  Start-Sleep -Seconds 5
+                  
+                  # Wait for server to start
+                  Write-Host "Waiting for Ollama server to start..."
+                  Start-Sleep -Seconds 10
 
       - run:
           name: Run Pytest
