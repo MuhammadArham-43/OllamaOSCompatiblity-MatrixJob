@@ -85,6 +85,7 @@ jobs:
                   
                   # Install Ollama after Homebrew is installed
                   brew install ollama
+                  brew services start ollama
             - run:
                 name: Add Homebrew Ollama to PATH
                 command: |
