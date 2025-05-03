@@ -80,9 +80,8 @@ jobs:
                   if ! command -v brew &> /dev/null; then
                     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                   fi
-                  # Make sure brew is in the PATH
-                  echo "export PATH=/opt/homebrew/bin:$PATH" >> $BASH_ENV
-                  source $BASH_ENV
+                  # Add brew to the PATH
+                  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
                   
                   # Install Ollama after Homebrew is installed
                   brew install ollama
