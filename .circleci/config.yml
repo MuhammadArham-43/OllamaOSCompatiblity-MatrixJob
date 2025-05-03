@@ -105,36 +105,13 @@ jobs:
             - run:
                 name: Start Ollama (Windows)
                 command: |
-                  Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
-                  Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
-                  
-                  # Install Ollama silently
-                  Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
-                  
-                  # Find Ollama executable
-                  $ollamaPath = "$env:LOCALAPPDATA\Ollama\ollama.exe"
-                  if (Test-Path $ollamaPath) {
-                    Write-Host "Ollama found at: $ollamaPath"
-                  } else {
-                    Write-Host "Ollama not found at expected location. Searching..."
-                    $ollamaPath = Get-ChildItem -Path $env:LOCALAPPDATA -Filter "ollama.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-                    if ($ollamaPath) {
-                      Write-Host "Ollama found at: $ollamaPath"
-                    } else {
-                      Write-Error "Ollama installation not found!"
-                      exit 1
-                    }
-                  }
-                  
-                  # Verify Ollama version
-                  & $ollamaPath --version
-                  
-                  # Start Ollama server
-                  Start-Process -NoNewWindow -FilePath $ollamaPath -ArgumentList "serve"
-                  
-                  # Wait for server to start
-                  Write-Host "Waiting for Ollama server to start..."
-                  Start-Sleep -Seconds 10
+                  curl -Lo ollama-installer.exe https://ollama.com/download/ollama-windows.exe
+                  start /wait "" ollama-installer.exe /S
+                  set "PATH=%LOCALAPPDATA%\Ollama;%PATH%"
+                  where ollama
+                  ollama serve > nul 2>&1 &
+                  timeout /t 5
+
 
       - run:
           name: Run Pytest
