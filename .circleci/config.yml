@@ -3,25 +3,18 @@ version: 2.1
 parameters:
   os:
     type: enum
-    default: linux-ubuntu
+    default: linux
     enum:
-      - linux-ubuntu
-      - linux-fedora
-      - macos-silicon
-
+      - linux
+      - macos
 
 executors:
-  linux-ubuntu-executor:
+  linux-executor:
     docker:
       - image: cimg/python:3.10
     working_directory: ~/ollama-tests
 
-  linux-fedora-executor:
-    docker:
-      - image: fedora:latest
-    working_directory: ~/ollama-tests
-
-  macos-silicon-executor:
+  mac-executor:
     macos:
       xcode: "14.2.0"
     working_directory: ~/ollama-tests
@@ -32,55 +25,58 @@ jobs:
       os:
         type: string
     executor:
-      name: << parameters.os >>-executor
+      name: << pipeline.parameters.os >>-executor
     steps:
       - checkout
 
+      - run:
+          name: Install Python deps from requirements.txt
+          command: |
+            pip install -r requirements.txt
+
       - when:
           condition:
-            or:
-              - equal: [<< parameters.os >>, "linux-ubuntu"]
-              - equal: [<< parameters.os >>, "linux-fedora"]
+            equal: [<< parameters.os >>, "linux"]
           steps:
             - run:
-                name: Install Python & deps (Linux)
+                name: Install system deps + Ollama (Linux)
                 command: |
-                  if command -v apt-get &> /dev/null; then
-                    sudo apt-get update && sudo apt-get install -y python3-pip curl jq
-                  elif command -v dnf &> /dev/null; then
-                    dnf install -y python3-pip curl jq gawk
-                  fi
-            - run:
-                name: Install Ollama (Linux)
-                command: |
+                  sudo apt-get update && sudo apt-get install -y curl jq
                   curl -fsSL https://ollama.com/install.sh | sh
                   echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
                   ollama serve &
-                  sleep 10
+                  sleep 5
 
       - when:
           condition:
-            equal: [<< parameters.os >>, "macos-silicon"]
+            equal: [<< parameters.os >>, "macos"]
           steps:
             - run:
-                name: Install Homebrew + Ollama (macOS)
+                name: Install Homebrew (macOS)
                 command: |
+                  # Install Homebrew if it's not installed
                   if ! command -v brew &> /dev/null; then
                     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                   fi
-                  eval "$(/opt/homebrew/bin/brew shellenv)"
+                  # Add brew to the PATH
+                  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+                  
+                  # Install Ollama after Homebrew is installed
                   brew install ollama
             - run:
-                name: Start Ollama
+                name: Add Homebrew Ollama to PATH
                 command: |
                   echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
-                  /opt/homebrew/opt/ollama/bin/ollama serve &
-                  sleep 10
-      - run:
-          name: Install Python dependencies
-          command: pip3 install -r requirements.txt
+                  which ollama
+                  ollama --version
+            - run:
+                name: Start Ollama
+                command: |
+                  ollama serve &
+                  sleep 5
+
       - run:
           name: Run Pytest
           command: pytest ollama-test.py
@@ -95,4 +91,4 @@ workflows:
       - test:
           matrix:
             parameters:
-              os: ["linux-ubuntu", "linux-fedora", "macos-silicon"]
+              os: ["linux", "macos"]
