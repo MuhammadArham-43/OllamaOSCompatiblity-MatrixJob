@@ -27,7 +27,7 @@ executors:
     machine:
       image: windows-server-2022-gui:current
     working_directory: ~/ollama-tests
-    shell: powershell.exe
+    shell: powershell.exe -ExecutionPolicy Bypass
 
 
 jobs:
