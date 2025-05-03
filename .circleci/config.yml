@@ -1,0 +1,111 @@
+version: 2.1
+
+parameters:
+  os:
+    type: enum
+    default: linux
+    enum:
+      - linux
+      - macos
+      - windows
+
+executors:
+  linux-executor:
+    docker:
+      - image: cimg/python:3.10
+    working_directory: ~/ollama-tests
+
+  mac-executor:
+    macos:
+      xcode: "14.2.0"
+    working_directory: ~/ollama-tests
+
+  windows-executor:
+    machine:
+      image: windows-server-2022-gui:current
+    shell: powershell.exe
+    working_directory: ~/ollama-tests
+
+jobs:
+  test:
+    parameters:
+      os:
+        type: string
+    executor:
+      name: << pipeline.parameters.os >>-executor
+    steps:
+      - checkout
+
+      - when:
+          condition:
+            not:
+              equal: [<< parameters.os >>, "windows"]
+          steps:
+            - run:
+                name: Install Python deps from requirements.txt (Linux/macOS)
+                command: |
+                  pip install -r requirements.txt
+
+      - when:
+          condition:
+            equal: [<< parameters.os >>, "windows"]
+          steps:
+            - run:
+                name: Install Python deps from requirements.txt (Windows)
+                command: |
+                  python -m pip install -r requirements.txt
+
+      - when:
+          condition:
+            equal: [<< parameters.os >>, "linux"]
+          steps:
+            - run:
+                name: Install system deps + Ollama (Linux)
+                command: |
+                  sudo apt-get update && sudo apt-get install -y curl jq
+                  curl -fsSL https://ollama.com/install.sh | sh
+                  sudo mv ~/.ollama/bin/ollama /usr/local/bin/ollama
+                  ollama serve &
+                  sleep 5
+
+      - when:
+          condition:
+            equal: [<< parameters.os >>, "macos"]
+          steps:
+            - run:
+                name: Install system deps + Ollama (macOS)
+                command: |
+                  brew install curl jq
+                  brew install ollama
+                  ollama serve &
+                  sleep 5
+
+      - when:
+          condition:
+            equal: [<< parameters.os >>, "windows"]
+          steps:
+            - run:
+                name: Start Ollama (Windows)
+                command: |
+                  Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
+                  Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
+                  $env:PATH += ";$env:LOCALAPPDATA\Ollama"
+                  ollama --version
+                  Start-Process -NoNewWindow -FilePath "ollama.exe" -ArgumentList "serve"
+                  Start-Sleep -Seconds 5
+
+      - run:
+          name: Run Pytest
+          command: pytest test_ollama.py
+
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+
+workflows:
+  test-matrix:
+    jobs:
+      - test:
+          matrix:
+            parameters:
+              os: ["linux", "macos", "windows"]
