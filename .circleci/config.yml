@@ -1,13 +1,5 @@
 version: 2.1
 
-parameters:
-  os:
-    type: enum
-    enum:
-      - ubuntu
-      - fedora
-      - macos
-
 executors:
   ubuntu-executor:
     docker:
@@ -30,7 +22,7 @@ jobs:
       os:
         type: string
     executor:
-      name: << pipeline.parameters.os >>-executor
+      name: << parameters.os >>-executor
     steps:
       - checkout
 
@@ -70,14 +62,10 @@ jobs:
             - run:
                 name: Install Homebrew (macOS)
                 command: |
-                  # Install Homebrew if it's not installed
                   if ! command -v brew &> /dev/null; then
                     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                   fi
-                  # Add brew to the PATH
                   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-                  
-                  # Install Ollama after Homebrew is installed
                   brew install ollama
             
             - run:
