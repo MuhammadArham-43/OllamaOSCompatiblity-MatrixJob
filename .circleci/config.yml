@@ -47,8 +47,6 @@ jobs:
                   curl -fsSL https://ollama.com/install.sh | sh
                   echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
-                  which ollama
-                  ollama --version
 
       - when:
           condition:
@@ -61,7 +59,6 @@ jobs:
                   brew install ollama
                   echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
-                  which ollama
                   ollama --version
 
       # - run:
