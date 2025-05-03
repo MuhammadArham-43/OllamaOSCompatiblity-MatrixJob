@@ -3,7 +3,6 @@ version: 2.1
 parameters:
   os:
     type: enum
-    default: linux
     enum:
       - ubuntu
       - fedora
