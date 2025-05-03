@@ -73,6 +73,9 @@ jobs:
           name: Test Ollama
           command: |
             # Check Ollama server is running
+            ollama serve &
+            sleep 10
+
             curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
 
             # Simple test generation
