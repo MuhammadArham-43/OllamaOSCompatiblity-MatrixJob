@@ -23,7 +23,6 @@ executors:
   windows-executor:
     machine:
       image: windows-server-2022-gui:current
-    shell: powershell.exe -ExecutionPolicy Bypass
     working_directory: ~/ollama-tests
 
 jobs:
@@ -103,15 +102,31 @@ jobs:
             equal: [<< parameters.os >>, "windows"]
           steps:
             - run:
-                name: Start Ollama (Windows)
-                shell: powershell.exe -ExecutionPolicy Bypass
+                name: Download and Install Ollama
                 command: |
-                  curl -Lo ollama-installer.exe https://ollama.com/download/ollama-windows.exe
-                  start /wait "" ollama-installer.exe /S
-                  set "PATH=%LOCALAPPDATA%\Ollama;%PATH%"
-                  where ollama
-                  ollama serve > nul 2>&1 &
-                  timeout /t 5
+                  curl -L -o ollama-windows.exe https://ollama.com/download/ollama-windows.exe
+                  ./ollama-windows.exe /S
+                  sleep 10
+            - run:
+                name: Start Ollama Server
+                command: |
+                  OLLAMA_PATH="$LOCALAPPDATA/Ollama/ollama.exe"
+                  if [ -f "$OLLAMA_PATH" ]; then
+                    echo "Ollama found at: $OLLAMA_PATH"
+                  else
+                    echo "Searching for ollama.exe..."
+                    OLLAMA_PATH=$(find "$LOCALAPPDATA" -name "ollama.exe" 2>/dev/null | head -1)
+                    if [ -n "$OLLAMA_PATH" ]; then
+                      echo "Ollama found at: $OLLAMA_PATH"
+                    else
+                      echo "ERROR: Ollama installation not found!"
+                      exit 1
+                    fi
+                  fi
+                  
+                  # Start Ollama server
+                  "$OLLAMA_PATH" serve &
+                  sleep 15
 
 
       - run:
