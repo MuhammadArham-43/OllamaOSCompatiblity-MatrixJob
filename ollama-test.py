@@ -7,7 +7,7 @@ import os
 import signal
 
 OLLAMA_URL = "http://localhost:11434"
-MODEL_NAME = "smollm2:135m"
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "smollm2:135m")
 
 class TestOllamaServer(unittest.TestCase):
 

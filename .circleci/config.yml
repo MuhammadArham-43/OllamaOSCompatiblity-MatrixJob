@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  model:
+    type: string
+    default: "smollm2:135m"
+
 executors:
   ubuntu-executor:
     docker:
@@ -27,8 +32,14 @@ jobs:
     parameters:
       os:
         type: string
+      model:
+        type: string
+        default: "smollm2:135m"
     executor:
       name: << parameters.os >>-executor
+    environment:
+      OLLAMA_MODEL: << parameters.model >>
+
     steps:
       - checkout
 
@@ -88,7 +99,7 @@ jobs:
                   Start-Process -NoNewWindow -FilePath "ollama" -ArgumentList "serve"
                   Start-Sleep -Seconds 10
 
-                  ollama pull smollm2:135m
+                  ollama pull $OLLAMA_MODEL
 
                   try {
                     $tags = Invoke-RestMethod -Uri http://localhost:11434/api/tags -Method Get
@@ -99,7 +110,7 @@ jobs:
                   }
 
                   $body = @{
-                    model = "smollm2:135m"
+                    model = $OLLAMA_MODEL
                     prompt = "Say hello"
                     stream = $false
                   } | ConvertTo-Json -Compress
@@ -124,12 +135,12 @@ jobs:
                 command: |
                   ollama serve &
                   sleep 10
-                  ollama pull smollm2:135m
+                  ollama pull "$OLLAMA_MODEL"
                   curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
 
                   curl -X POST http://localhost:11434/api/generate \
                     -H "Content-Type: application/json" \
-                    -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
+                    -d '{"model": "$OLLAMA_MODEL", "prompt": "Say hello", "stream": false}' \
                     | tee ollama-test-output.json
 
                   echo "Ollama response:"
