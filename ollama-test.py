@@ -60,7 +60,15 @@ def setup_environment():
 
 def test_model_availability():
     response = requests.get(f"{BASE_URL}/tags")
-    assert response.status_code == 200
+    if response.status_code != 200:
+        print("🚨 Ollama Model Fetch Failed!")
+        print(f"Status code: {response.status_code}")
+        try:
+            print("Response JSON:", response.json())
+        except ValueError:
+            print("Raw response text:", response.text)
+        pytest.fail("Ollama generation returned 500")
+    
     models = response.json()["models"]
     model_names = [model["name"] for model in models]
     assert MODEL_NAME in model_names
@@ -76,7 +84,15 @@ def test_basic_generation():
     response = requests.post(f"{BASE_URL}/generate", json=payload)
     end_time = time.time()
 
-    assert response.status_code == 200
+    if response.status_code != 200:
+        print("🚨 Ollama generation failed!")
+        print(f"Status code: {response.status_code}")
+        try:
+            print("Response JSON:", response.json())
+        except ValueError:
+            print("Raw response text:", response.text)
+        pytest.fail("Ollama generation returned 500")
+
     result = response.json()
     assert "response" in result
     assert len(result["response"]) > 20
@@ -101,7 +117,15 @@ def test_inference_latency():
         start = time.time()
         response = requests.post(f"{BASE_URL}/generate", json=payload)
         end = time.time()
-        assert response.status_code == 200
+        if response.status_code != 200:
+            print("🚨 Ollama generation failed!")
+            print(f"Status code: {response.status_code}")
+            try:
+                print("Response JSON:", response.json())
+            except ValueError:
+                print("Raw response text:", response.text)
+            pytest.fail("Ollama generation returned 500")
+
         latency = end - start
         latencies.append(latency)
         print(f"Run {i+1}: {latency:.2f}s")
