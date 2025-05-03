@@ -78,24 +78,62 @@ jobs:
                   refreshenv
                   ollama --version
 
+      - when:
+          condition:
+            equal: [<< parameters.os >>, "windows"]
+          steps:
+            - run:
+                name: Serve Ollama and Pull Model (Windows)
+                command: |
+                  Start-Process -NoNewWindow -FilePath "ollama" -ArgumentList "serve"
+                  Start-Sleep -Seconds 10
 
-      - run:
-          name: Serve Ollama and Pull Model
-          command: |
-            # Check Ollama server is running
-            ollama serve &
-            sleep 10
-            ollama pull smollm2:135m
-            curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
+                  ollama pull smollm2:135m
 
-            # Simple test generation
-            curl -X POST http://localhost:11434/api/generate \
-              -H "Content-Type: application/json" \
-              -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
-              | tee ollama-test-output.json
+                  try {
+                    $tags = Invoke-RestMethod -Uri http://localhost:11434/api/tags -Method Get
+                    Write-Host "Ollama tags:" $tags
+                  } catch {
+                    Write-Host "Ollama is not responding!"
+                    exit 1
+                  }
 
-            echo "Ollama response:"
-            cat ollama-test-output.json
+                  $body = @{
+                    model = "smollm2:135m"
+                    prompt = "Say hello"
+                    stream = $false
+                  } | ConvertTo-Json -Compress
+
+                  Invoke-RestMethod -Uri http://localhost:11434/api/generate `
+                                    -Method Post `
+                                    -ContentType "application/json" `
+                                    -Body $body `
+                                    -OutFile "ollama-test-output.json"
+
+                  Get-Content ollama-test-output.json
+
+      - when:
+          condition:
+            or:
+              - equal: [<< parameters.os >>, "ubuntu"]
+              - equal: [<< parameters.os >>, "fedora"]
+              - equal: [<< parameters.os >>, "macos"]
+          steps:
+            - run:
+                name: Serve Ollama and Pull Model (Unix)
+                command: |
+                  ollama serve &
+                  sleep 10
+                  ollama pull smollm2:135m
+                  curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
+
+                  curl -X POST http://localhost:11434/api/generate \
+                    -H "Content-Type: application/json" \
+                    -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
+                    | tee ollama-test-output.json
+
+                  echo "Ollama response:"
+                  cat ollama-test-output.json
 
       - run:
           name: Run Python test
