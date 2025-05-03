@@ -23,7 +23,7 @@ executors:
 
   macos-silicon-executor:
     macos:
-      xcode: "15.2.0"
+      xcode: "14.2.0"
     working_directory: ~/ollama-tests
 
 jobs:
@@ -50,7 +50,6 @@ jobs:
                   elif command -v dnf &> /dev/null; then
                     dnf install -y python3-pip curl jq gawk
                   fi
-                  pip3 install -r requirements.txt
             - run:
                 name: Install Ollama (Linux)
                 command: |
@@ -73,14 +72,17 @@ jobs:
                   eval "$(/opt/homebrew/bin/brew shellenv)"
                   brew install ollama
             - run:
-                name: Install Python deps
-                command: pip3 install -r requirements.txt
-            - run:
                 name: Start Ollama
                 command: |
+                  echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
+                  source $BASH_ENV
+                  which ollama
+                  ollama --version
                   ollama serve &
                   sleep 5
-
+      - run:
+          name: Install Python dependencies
+          command: pip3 install -r requirements.txt
       - run:
           name: Run Pytest
           command: pytest ollama-test.py
