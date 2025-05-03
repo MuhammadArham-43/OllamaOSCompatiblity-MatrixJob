@@ -23,7 +23,7 @@ executors:
   windows-executor:
     machine:
       image: windows-server-2022-gui:current
-    shell: cmd.exe
+    shell: powershell.exe -ExecutionPolicy Bypass
     working_directory: ~/ollama-tests
 
 jobs:
@@ -104,7 +104,7 @@ jobs:
           steps:
             - run:
                 name: Start Ollama (Windows)
-                shell: cmd.exe
+                shell: powershell.exe -ExecutionPolicy Bypass
                 command: |
                   curl -Lo ollama-installer.exe https://ollama.com/download/ollama-windows.exe
                   start /wait "" ollama-installer.exe /S
