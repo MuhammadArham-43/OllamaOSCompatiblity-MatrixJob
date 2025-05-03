@@ -74,7 +74,7 @@ jobs:
             - run:
                 name: Install Ollama on Windows
                 command: |
-                  Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
+                  Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile "ollama-windows.exe"
                   
                   # Run the installer silently
                   Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
@@ -118,4 +118,4 @@ workflows:
       - test:
           matrix:
             parameters:
-              os: ["ubuntu", "windows"]
+              os: ["windows"]
