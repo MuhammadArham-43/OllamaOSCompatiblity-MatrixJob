@@ -74,15 +74,8 @@ jobs:
             - run:
                 name: Install Ollama on Windows
                 command: |
-                  Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile "ollama-windows.exe"
-                  
-                  # Run the installer silently
-                  Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
-                  
-                  # Add Ollama to PATH for this session
-                  $env:PATH += ";$env:LOCALAPPDATA\Ollama"
-                  
-                  # Verify installation
+                  choco install ollama
+                  refreshenv
                   ollama --version
 
 
