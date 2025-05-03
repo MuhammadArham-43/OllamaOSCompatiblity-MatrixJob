@@ -23,7 +23,6 @@ executors:
   windows-executor:
     machine:
       image: windows-server-2022-gui:current
-    shell: powershell.exe
     working_directory: ~/ollama-tests
 
 jobs:
@@ -104,13 +103,14 @@ jobs:
           steps:
             - run:
                 name: Start Ollama (Windows)
-                shell: powershell.exe
+                shell: powershell
                 command: |
                   Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
                   Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
-                  $env:PATH += ";$env:LOCALAPPDATA\Ollama"
-                  ollama --version
-                  Start-Process -NoNewWindow -FilePath "ollama.exe" -ArgumentList "serve"
+
+                  $ollamaPath = "$env:LOCALAPPDATA\Ollama\ollama.exe"
+                  & $ollamaPath --version
+                  Start-Process -NoNewWindow -FilePath $ollamaPath -ArgumentList "serve"
                   Start-Sleep -Seconds 5
 
       - run:
