@@ -27,6 +27,7 @@ executors:
     machine:
       image: windows-server-2022-gui:current
     working_directory: ~/ollama-tests
+    shell: powershell.exe
 
 
 jobs:
@@ -48,10 +49,14 @@ jobs:
             equal: [<< parameters.os >>, "windows"]
           steps:
             - run:
+                name: Debug Shell
+                command: |
+                  echo "Shell: $SHELL"
+                  Get-ChildItem Env: | Where-Object { $_.Name -eq "PATH" }
+            - run:
                 name: Install Ollama (Windows)
                 command: |
-                  choco install kollama
-                  
+                  Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile "OllamaSetup.exe"
 
 
       - when:
