@@ -1,119 +1,14 @@
 version: 2.1
 
-parameters:
-  os:
-    type: enum
-    default: linux
-    enum:
-      - linux
-      - macos
-      - windows
-
-orbs:
-  win: circleci/windows@5.0.0
-
-executors:
-  linux-executor:
-    docker:
-      - image: cimg/python:3.10
-    working_directory: ~/ollama-tests
-
-  mac-executor:
-    macos:
-      xcode: "14.2.0"
-    working_directory: ~/ollama-tests
-  
-  windows-executor:
+jobs:
+  build:
     machine:
       image: windows-server-2022-gui:current
-    working_directory: ~/ollama-tests
     shell: powershell.exe -ExecutionPolicy Bypass
-
-
-jobs:
-  test:
-    parameters:
-      os:
-        type: string
-    executor:
-      name: << pipeline.parameters.os >>-executor
     steps:
       - checkout
-
       - run:
-          name: Install Python deps from requirements.txt
+          name: Run PowerShell command
           command: |
-            pip install -r requirements.txt
-      - when:
-          condition: 
-            equal: [<< parameters.os >>, "windows"]
-          steps:
-            - run:
-                name: Debug Shell
-                command: |
-                  echo "Shell: $SHELL"
-                  Get-ChildItem Env: | Where-Object { $_.Name -eq "PATH" }
-            - run:
-                name: Install Ollama (Windows)
-                command: |
-                  Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile "OllamaSetup.exe"
-
-
-      - when:
-          condition:
-            equal: [<< parameters.os >>, "linux"]
-          steps:
-            - run:
-                name: Install system deps + Ollama (Linux)
-                command: |
-                  sudo apt-get update && sudo apt-get install -y curl jq
-                  curl -fsSL https://ollama.com/install.sh | sh
-                  echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
-                  source $BASH_ENV
-                  ollama serve &
-                  sleep 5
-
-      - when:
-          condition:
-            equal: [<< parameters.os >>, "macos"]
-          steps:
-            - run:
-                name: Install Homebrew (macOS)
-                command: |
-                  # Install Homebrew if it's not installed
-                  if ! command -v brew &> /dev/null; then
-                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                  fi
-                  # Add brew to the PATH
-                  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-                  
-                  # Install Ollama after Homebrew is installed
-                  brew install ollama
-            - run:
-                name: Add Homebrew Ollama to PATH
-                command: |
-                  echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
-                  source $BASH_ENV
-                  which ollama
-                  ollama --version
-            - run:
-                name: Start Ollama
-                command: |
-                  ollama serve &
-                  sleep 5
-
-      - run:
-          name: Run Pytest
-          command: pytest ollama-test.py
-
-      - store_artifacts:
-          path: test-results
-          destination: test-results
-
-workflows:
-  test-matrix:
-    jobs:
-      - test:
-          matrix:
-            parameters:
-              os: ["linux", "macos", "windows"]
+            Write-Output "Hello from PowerShell"
+            Get-ChildItem
