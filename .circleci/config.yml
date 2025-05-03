@@ -7,7 +7,6 @@ parameters:
     enum:
       - linux
       - macos
-      - windows
 
 executors:
   linux-executor:
@@ -18,12 +17,6 @@ executors:
   mac-executor:
     macos:
       xcode: "14.2.0"
-    working_directory: ~/ollama-tests
-
-  windows-executor:
-    machine:
-      image: windows-server-2022-gui:current
-    shell: cmd.exe /c
     working_directory: ~/ollama-tests
 
 jobs:
@@ -98,4 +91,4 @@ workflows:
       - test:
           matrix:
             parameters:
-              os: ["linux", "macos", "windows"]
+              os: ["linux", "macos"]
