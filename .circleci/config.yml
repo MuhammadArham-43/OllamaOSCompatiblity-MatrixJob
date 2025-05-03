@@ -48,15 +48,10 @@ jobs:
             equal: [<< parameters.os >>, "windows"]
           steps:
             - run:
-                name: Debug Shell
-                command: |
-                  echo "Shell: $SHELL"
-                  Get-ChildItem Env: | Where-Object { $_.Name -eq "PATH" }
-            - run:
-                shell: pwsh.exe
                 name: Install Ollama (Windows)
                 command: |
-                  Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile "OllamaSetup.exe"
+                  choco install kollama
+                  
 
 
       - when:
