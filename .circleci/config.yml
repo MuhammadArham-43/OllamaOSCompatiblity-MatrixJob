@@ -47,8 +47,8 @@ jobs:
                   curl -fsSL https://ollama.com/install.sh | sh
                   echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
-                  ollama serve &
-                  sleep 10
+                  which ollama
+                  ollama --version
 
       - when:
           condition:
@@ -63,41 +63,32 @@ jobs:
                   source $BASH_ENV
                   which ollama
                   ollama --version
-            
-            - run:
-                name: Start Ollama
-                command: |
-                  ollama serve &
-                  sleep 10
+
+      # - run:
+      #     name: Test Ollama
+      #     command: |
+      #       # Check Ollama server is running
+      #       ollama serve &
+      #       sleep 10
+      #       ollama pull smollm2:135m
+      #       curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
+
+      #       # Simple test generation
+      #       curl -X POST http://localhost:11434/api/generate \
+      #         -H "Content-Type: application/json" \
+      #         -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
+      #         | tee ollama-test-output.json
+
+      #       echo "Ollama response:"
+      #       cat ollama-test-output.json
+
       - run:
-          name: Test Ollama
+          name: Run Python test
           command: |
-            # Check Ollama server is running
-            ollama serve &
-            sleep 10
-            ollama pull smollm2:135m
-            curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
+            pip install requests
+            python3 ollama-test.py
 
-            # Simple test generation
-            curl -X POST http://localhost:11434/api/generate \
-              -H "Content-Type: application/json" \
-              -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
-              | tee ollama-test-output.json
-
-            echo "Ollama response:"
-            cat ollama-test-output.json
  
-      # - run:
-      #     name: Install Python packages
-      #     command: pip3 install -r requirements.txt
-      
-      # - run:
-      #     name: Run Pytest
-      #     command: pytest ollama-test.py
-
-      # - store_artifacts:
-      #     path: test-results
-      #     destination: test-results
 
 workflows:
   test-matrix:
