@@ -1,26 +1,123 @@
 version: 2.1
 
+# ----------- Executors define environment per OS -----------
+
 executors:
   ubuntu-executor:
     docker:
-      - image: cimg/python:3.10
+      - image: cimg/python:3.10   # Usual Linux machine running Ubuntu
     working_directory: ~/ollama-tests
 
   fedora-executor:
     docker:
-      - image: fedora:latest
+      - image: fedora:latest    # Uses Fedora's official Docker image
     working_directory: ~/ollama-tests
 
   macos-executor:
     macos:
-      xcode: "14.2.0"
+      xcode: "14.2.0"   # Used Silicon-based M1.Pro Macbook
     working_directory: ~/ollama-tests
 
   windows-executor:
     machine: 
-      image: windows-server-2019-vs2019:current
+      image: windows-server-2019-vs2019:current   # Uses a Windows VM machine.
     shell: 'powershell.exe -ExecutionPolicy Bypass'
     resource_class: 'windows.medium'
+
+# ----------- Shared reusable commands for OS-specific setup and testing -----------
+
+commands:
+  install_ollama_linux:
+    steps:
+      - run:
+          name: Install Python & Ollama (Linux)
+          command: |
+            if command -v apt-get &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y python3-pip curl jq
+            elif command -v dnf &> /dev/null; then
+              dnf install -y python3-pip curl jq gawk
+            fi
+            curl -fsSL https://ollama.com/install.sh | sh
+            echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+
+  install_ollama_macos:
+    steps:
+      - run:
+          name: Install Ollama (macOS)
+          command: |
+            brew update
+            brew install ollama
+            # Homebrew installs into Linuxbrew path; persist it in BASH_ENV
+            echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+            ollama --version
+
+  install_ollama_windows:
+    steps:
+      - run:
+          name: Install Ollama (Windows)
+          command: |
+            # Install using Chocolatey, then refresh shell environment
+            choco install ollama
+            refreshenv
+            ollama --version
+
+  serve_and_test_unix:
+    steps:
+      - run:
+          name: Serve Ollama & Test (Unix)
+          # -- Basic Ollama testing from cli arguments and commands -- #
+          command: |
+            ollama serve &
+            sleep 10
+            ollama pull smollm2:135m
+            curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
+            curl -X POST http://localhost:11434/api/generate \
+              -H "Content-Type: application/json" \
+              -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
+              | tee ollama-test-output.json
+
+            echo "Ollama response:"
+            cat ollama-test-output.json
+
+  serve_and_test_windows:
+    steps:
+      - run:
+          name: Serve Ollama & Test (Windows)
+          # -- Windows-specific cli testing with Powershell syntax -- #
+          command: |
+            # Start Ollama server in background
+            Start-Process -NoNewWindow -FilePath "ollama" -ArgumentList "serve"
+            Start-Sleep -Seconds 10
+
+            # Pull small model and check server readiness
+            ollama pull smollm2:135m
+
+            try {
+              $tags = Invoke-RestMethod -Uri http://localhost:11434/api/tags -Method Get
+              Write-Host "Ollama tags:" $tags
+            } catch {
+              Write-Host "Ollama is not responding!"
+              exit 1
+            }
+
+            # Send generate request to validate inference
+            $body = @{
+              model = "smollm2:135m"
+              prompt = "Say hello"
+              stream = $false
+            } | ConvertTo-Json -Compress
+
+            Invoke-RestMethod -Uri http://localhost:11434/api/generate `
+                              -Method Post `
+                              -ContentType "application/json" `
+                              -Body $body `
+                              -OutFile "ollama-test-output.json"
+
+            Get-Content ollama-test-output.json
+
+# ----------- Matrix job for each OS -----------
 
 jobs:
   test:
@@ -32,86 +129,37 @@ jobs:
     steps:
       - checkout
 
+      # Linux setup and install
       - when:
           condition:
             or:
               - equal: [<< parameters.os >>, "ubuntu"]
               - equal: [<< parameters.os >>, "fedora"]
           steps:
-            - run:
-                name: Install Python & deps (Linux)
-                command: |
-                  if command -v apt-get &> /dev/null; then
-                    sudo apt-get update && sudo apt-get install -y python3-pip curl jq
-                  elif command -v dnf &> /dev/null; then
-                    dnf install -y python3-pip curl jq gawk
-                  fi
-            
-            - run:
-                name: Install Ollama (Linux)
-                command: |
-                  curl -fsSL https://ollama.com/install.sh | sh
-                  echo 'export PATH="$HOME/.ollama/bin:$PATH"' >> $BASH_ENV
-                  source $BASH_ENV
+            - install_ollama_linux
 
+      # macOS setup
       - when:
           condition:
             equal: [<< parameters.os >>, "macos"]
           steps:
-            - run:
-                name: Add Homebrew Ollama to PATH
-                command: |
-                  brew update
-                  brew install ollama
-                  echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
-                  source $BASH_ENV
-                  ollama --version
-      
+            - install_ollama_macos
+
+      # Windows setup
       - when:
           condition:
             equal: [<< parameters.os >>, "windows"]
           steps:
-            - run:
-                name: Install Ollama on Windows
-                command: |
-                  choco install ollama
-                  refreshenv
-                  ollama --version
+            - install_ollama_windows
 
+      # Windows-specific Ollama serve + test
       - when:
           condition:
             equal: [<< parameters.os >>, "windows"]
           steps:
-            - run:
-                name: Serve Ollama and Pull Model (Windows)
-                command: |
-                  Start-Process -NoNewWindow -FilePath "ollama" -ArgumentList "serve"
-                  Start-Sleep -Seconds 10
+            - serve_and_test_windows
 
-                  ollama pull smollm2:135m
-
-                  try {
-                    $tags = Invoke-RestMethod -Uri http://localhost:11434/api/tags -Method Get
-                    Write-Host "Ollama tags:" $tags
-                  } catch {
-                    Write-Host "Ollama is not responding!"
-                    exit 1
-                  }
-
-                  $body = @{
-                    model = "smollm2:135m"
-                    prompt = "Say hello"
-                    stream = $false
-                  } | ConvertTo-Json -Compress
-
-                  Invoke-RestMethod -Uri http://localhost:11434/api/generate `
-                                    -Method Post `
-                                    -ContentType "application/json" `
-                                    -Body $body `
-                                    -OutFile "ollama-test-output.json"
-
-                  Get-Content ollama-test-output.json
-
+      # Unix systems serve + test
       - when:
           condition:
             or:
@@ -119,21 +167,7 @@ jobs:
               - equal: [<< parameters.os >>, "fedora"]
               - equal: [<< parameters.os >>, "macos"]
           steps:
-            - run:
-                name: Serve Ollama and Pull Model (Unix)
-                command: |
-                  ollama serve &
-                  sleep 10
-                  ollama pull smollm2:135m
-                  curl -s http://localhost:11434/api/tags || (echo "Ollama is not responding!" && exit 1)
-
-                  curl -X POST http://localhost:11434/api/generate \
-                    -H "Content-Type: application/json" \
-                    -d '{"model": "smollm2:135m", "prompt": "Say hello", "stream": false}' \
-                    | tee ollama-test-output.json
-
-                  echo "Ollama response:"
-                  cat ollama-test-output.json
+            - serve_and_test_unix
 
       - run:
           name: Run Python test
@@ -141,12 +175,12 @@ jobs:
             pip install requests
             python ollama-test.py
 
- 
+# ----------- Matrix workflow across all target OSes -----------
 
 workflows:
   test-matrix:
     jobs:
       - test:
           matrix:
-            parameters:
+            parameters: # Defined parameters used with the Matrix Job
               os: ["fedora", "ubuntu", "macos", "windows"]
