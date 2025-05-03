@@ -48,7 +48,6 @@ jobs:
             equal: [<< parameters.os >>, "windows"]
           steps:
             - run:
-                shell: pwsh.exe
                 name: Debug Shell
                 command: |
                   echo "Shell: $SHELL"
