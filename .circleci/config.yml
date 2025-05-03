@@ -1,5 +1,14 @@
 version: 2.1
 
+parameters:
+  os:
+    type: enum
+    default: linux
+    enum:
+      - linux
+      - macos
+      - windows
+
 executors:
   linux-executor:
     docker:
