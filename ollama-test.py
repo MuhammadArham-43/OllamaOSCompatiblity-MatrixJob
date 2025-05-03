@@ -1,6 +1,7 @@
 import unittest
 import requests
 import subprocess
+import platform
 import time
 import os
 import signal
@@ -22,7 +23,10 @@ class TestOllamaServer(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # Stop the Ollama server
-        cls.ollama_proc.send_signal(signal.SIGINT)
+        if platform.system() == "Windows":
+            cls.ollama_proc.terminate()
+        else:
+            cls.ollama_proc.send_signal(signal.SIGINT)
         cls.ollama_proc.wait()
 
     def test_server_responds(self):
