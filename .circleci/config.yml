@@ -104,7 +104,7 @@ jobs:
           steps:
             - run:
                 name: Start Ollama (Windows)
-                shell: powershell
+                shell: powershell.exe
                 command: |
                   Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
                   Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
