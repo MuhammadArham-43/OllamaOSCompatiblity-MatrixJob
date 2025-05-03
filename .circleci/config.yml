@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: windows-server-2022-gui:current
+      image: windows-server-2022-gui:2022.04.1
     shell: powershell.exe -ExecutionPolicy Bypass
     steps:
       - checkout
