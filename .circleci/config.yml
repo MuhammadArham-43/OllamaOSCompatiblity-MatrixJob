@@ -36,24 +36,10 @@ jobs:
     steps:
       - checkout
 
-      - when:
-          condition:
-            not:
-              equal: [<< parameters.os >>, "windows"]
-          steps:
-            - run:
-                name: Install Python deps from requirements.txt (Linux/macOS)
-                command: |
-                  pip install -r requirements.txt
-
-      - when:
-          condition:
-            equal: [<< parameters.os >>, "windows"]
-          steps:
-            - run:
-                name: Install Python deps from requirements.txt (Windows)
-                command: |
-                  python -m pip install -r requirements.txt
+      - run:
+          name: Install Python deps from requirements.txt
+          command: |
+            pip install -r requirements.txt
 
       - when:
           condition:
@@ -97,85 +83,6 @@ jobs:
                 command: |
                   ollama serve &
                   sleep 5
-
-      - when:
-          condition:
-            equal: [<< parameters.os >>, "windows"]
-          steps:
-            - run:
-                name: Debug Environment
-                command: |
-                  echo "Current directory: $(pwd)"
-                  echo "PATH: $PATH"
-                  echo "LOCALAPPDATA: $LOCALAPPDATA"
-                  echo "USERPROFILE: $USERPROFILE"
-                  echo "Checking available commands:"
-                  which curl
-                  which python
-                  echo "Listing Windows Program Files:"
-                  ls -la "/c/Program Files" || echo "Cannot access Program Files"
-            - run:
-                name: Install Python dependencies
-                command: |
-                  python -m pip install -r requirements.txt || python3 -m pip install -r requirements.txt
-            - run:
-                name: Install Chocolatey (Windows package manager)
-                command: |
-                  echo "Installing Chocolatey for Windows package management..."
-                  powershell.exe -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))" || echo "Chocolatey may already be installed"
-                  echo "PATH after Chocolatey: $PATH"
-                  export PATH="$PATH:/c/ProgramData/chocolatey/bin"
-                  echo "Adding Chocolatey to PATH: $PATH"
-            - run:
-                name: Install Ollama using Chocolatey
-                command: |
-                  echo "Installing Ollama via Chocolatey..."
-                  export PATH="$PATH:/c/ProgramData/chocolatey/bin"
-                  choco.exe install ollama -y --no-progress || echo "Ollama installation from Chocolatey may have failed"
-                  echo "Checking Program Files for Ollama:"
-                  find /c -name "ollama.exe" 2>/dev/null || echo "No Ollama found in C:"
-            - run:
-                name: Download and Install Ollama directly
-                command: |
-                  echo "Attempting direct Ollama download and install..."
-                  curl -L -o ollama-setup.exe https://ollama.com/download/ollama-windows.exe
-                  # Use cmd.exe to run the Windows installer
-                  cmd.exe /c "ollama-setup.exe /S"
-                  echo "Waiting for installation to complete..."
-                  sleep 20
-                  echo "Searching for Ollama installation:"
-                  find "$LOCALAPPDATA" -name "ollama.exe" 2>/dev/null || echo "Not found in LOCALAPPDATA"
-                  find "$USERPROFILE" -name "ollama.exe" 2>/dev/null || echo "Not found in USERPROFILE"
-                  find /c/Program* -name "ollama.exe" 2>/dev/null || echo "Not found in Program Files"
-            - run:
-                name: Start Ollama Server
-                command: |
-                  echo "Attempting to start Ollama..."
-                  # Default path based on documentation
-                  OLLAMA_PATH="${LOCALAPPDATA}/Ollama/ollama.exe"
-                  
-                  if [ -f "$OLLAMA_PATH" ]; then
-                    echo "Found Ollama at: $OLLAMA_PATH"
-                    # Use cmd.exe to start a Windows process
-                    cmd.exe /c "start /b \"\" \"$OLLAMA_PATH\" serve"
-                    echo "Started Ollama server"
-                  else
-                    echo "Searching for ollama.exe..."
-                    FOUND_OLLAMA=$(find / -name "ollama.exe" 2>/dev/null | head -1)
-                    
-                    if [ -n "$FOUND_OLLAMA" ]; then
-                      echo "Found Ollama at: $FOUND_OLLAMA"
-                      cmd.exe /c "start /b \"\" \"$FOUND_OLLAMA\" serve"
-                      echo "Started Ollama server with found executable"
-                    else
-                      echo "ERROR: Could not locate Ollama executable!"
-                      exit 1
-                    fi
-                  fi
-                  
-                  echo "Waiting for Ollama server to initialize..."
-                  sleep 15
-
 
       - run:
           name: Run Pytest
