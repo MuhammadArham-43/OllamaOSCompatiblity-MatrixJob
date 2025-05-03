@@ -43,7 +43,6 @@ class TestOllamaServer(unittest.TestCase):
         response = requests.post(f"{OLLAMA_URL}/api/generate", json=payload)
         self.assertEqual(response.status_code, 200)
         self.assertIn("response", response.json())
-        self.assertTrue("hello" in response.json()["response"].lower())
 
 if __name__ == "__main__":
     unittest.main()

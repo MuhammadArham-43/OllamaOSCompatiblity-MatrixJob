@@ -149,4 +149,4 @@ workflows:
       - test:
           matrix:
             parameters:
-              os: ["windows"]
+              os: ["fedora", "ubuntu", "macos", "windows"]
