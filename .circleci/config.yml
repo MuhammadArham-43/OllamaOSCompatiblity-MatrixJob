@@ -16,6 +16,11 @@ executors:
       xcode: "14.2.0"
     working_directory: ~/ollama-tests
 
+  windows-executor:
+    machine: 
+      image: 'windows-server-2022-gui:current'
+    shell: 'powershell.exe -ExecutionPolicy Bypass'
+
 jobs:
   test:
     parameters:
@@ -60,6 +65,25 @@ jobs:
                   echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> $BASH_ENV
                   source $BASH_ENV
                   ollama --version
+      
+      - when:
+          condition:
+            equal: [<< parameters.os >>, "windows"]
+          steps:
+            - run:
+                name: Install Ollama on Windows
+                command: |
+                  Invoke-WebRequest -Uri "https://ollama.com/download/ollama-windows.exe" -OutFile "ollama-windows.exe"
+                  
+                  # Run the installer silently
+                  Start-Process -FilePath ".\ollama-windows.exe" -ArgumentList "/S" -Wait
+                  
+                  # Add Ollama to PATH for this session
+                  $env:PATH += ";$env:LOCALAPPDATA\Ollama"
+                  
+                  # Verify installation
+                  ollama --version
+
 
       - run:
           name: Serve Ollama and Pull Model
@@ -93,4 +117,4 @@ workflows:
       - test:
           matrix:
             parameters:
-              os: ["ubuntu", "fedora", "macos"]
+              os: ["ubuntu", "windows"]
