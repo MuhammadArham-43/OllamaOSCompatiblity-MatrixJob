@@ -139,7 +139,7 @@ jobs:
           name: Run Python test
           command: |
             pip install requests
-            python3 ollama-test.py
+            python ollama-test.py
 
  
 
